@@ -5,7 +5,8 @@ authors = ["Jerahmeel Cosinas <me@jerahmeelcosinas.net>"]
 edition = "2018"
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", branch ="main"}
+bevy = "0.5"
+bevy_egui = "0.6"
 
 [dev-dependencies]
 proptest = "0.10.1"
