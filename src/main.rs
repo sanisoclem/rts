@@ -30,6 +30,7 @@ struct DebugConsole {
 
 impl DebugConsole {
   pub fn invoke(&mut self)  {
+    if self.cmd_buffer.is_empty() { return }
     let cur_cmd = std::mem::replace(&mut self.cmd_buffer, String::default());
     self.output.push_front(format!("Command {} not found", cur_cmd));
     self.cmd_history.push_front(cur_cmd);
