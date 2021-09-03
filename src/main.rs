@@ -1,85 +1,137 @@
+mod debug;
+mod helpers;
+
 use bevy::{input::system::exit_on_esc_system, prelude::*};
-use bevy_egui::{egui, EguiContext, EguiPlugin};
-use std::collections::VecDeque;
+use bevy_ecs_tilemap::prelude::*;
+use bevy_egui::EguiPlugin;
+
+use rand::{thread_rng, Rng};
 
 fn main() {
   App::build()
     .insert_resource(Msaa { samples: 4 })
     .insert_resource(WindowDescriptor {
-        title: "Biology!".to_string(),
-        width: 800.,
-        height: 600.,
-        ..Default::default()
+      title: "Biology!".to_string(),
+      width: 800.,
+      height: 600.,
+      ..Default::default()
     })
     .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
-    .init_resource::<DebugConsole>()
     .add_plugins(DefaultPlugins)
     .add_plugin(EguiPlugin)
-    .add_system(debug_gui.system())
+    .add_plugin(TilemapPlugin)
+    .add_plugin(debug::DebugPlugin)
     .add_system(exit_on_esc_system.system())
+    .add_startup_system(startup.system())
+    .add_system(helpers::camera::movement.system())
+    .add_system(helpers::texture::set_texture_filters_to_nearest.system())
     .run();
 }
 
-#[derive(Default)]
-struct DebugConsole {
-  console_open: bool,
-  cmd_buffer: String,
-  cmd_history: VecDeque<String>,
-  output: VecDeque<String>,
-}
+fn startup(
+  mut commands: Commands,
+  asset_server: Res<AssetServer>,
+  mut materials: ResMut<Assets<ColorMaterial>>,
+  mut map_query: MapQuery,
+) {
+  commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-impl DebugConsole {
-  pub fn invoke(&mut self)  {
-    if self.cmd_buffer.is_empty() { return }
-    let cur_cmd = std::mem::replace(&mut self.cmd_buffer, String::default());
-    self.output.push_front(format!("Command {} not found", cur_cmd));
-    self.cmd_history.push_front(cur_cmd);
-  }
-}
+  let texture_handle = asset_server.load("iso_color.png");
+  let material_handle = materials.add(ColorMaterial::texture(texture_handle));
 
-fn dark_light_mode_switch(ui: &mut egui::Ui) {
-  let style: egui::Style = (*ui.ctx().style()).clone();
-  let new_visuals = style.visuals.light_dark_small_toggle_button(ui);
-  if let Some(visuals) = new_visuals {
-      ui.ctx().set_visuals(visuals);
-  }
-}
-fn debug_gui(egui_context: ResMut<EguiContext>,
-  mut dbg_state: ResMut<DebugConsole>) {
-  let wants_kbinput = egui_context.ctx().wants_keyboard_input();
-  let toggle_console = egui_context.ctx().input().key_pressed(egui::Key::Tab);
+  // Create map entity and component:
+  let map_entity = commands.spawn().id();
+  let mut map = Map::new(0u16, map_entity);
 
-  if toggle_console {
-    dbg_state.console_open = !dbg_state.console_open
-  }
+  let mut map_settings = LayerSettings::new(
+      UVec2::new(2, 2),
+      UVec2::new(32, 32),
+      Vec2::new(64.0, 32.0),
+      Vec2::new(384.0, 32.0),
+  );
+  map_settings.mesh_type = TilemapMeshType::Isometric(IsoType::Diamond);
 
-  egui::TopBottomPanel::top("Menu").show(egui_context.ctx(), |ui| {
-    ui.horizontal_wrapped(|ui| {
-      dark_light_mode_switch(ui);
+  // Layer 0
+  let (mut layer_0, layer_0_entity) =
+      LayerBuilder::<TileBundle>::new(&mut commands, map_settings.clone(), 0u16, 0u16);
+  map.add_layer(&mut commands, 0u16, layer_0_entity);
 
-      ui.checkbox(&mut dbg_state.console_open, "💻 Console");
-      ui.separator();
-      egui::warn_if_debug_build(ui);
-    });
-  });
-
-  if dbg_state.console_open {
-    egui::SidePanel::left("Console").show(egui_context.ctx(), |ui| {
-      let cmd_te = ui.add(egui::TextEdit::singleline(&mut dbg_state.cmd_buffer).hint_text("Enter command").desired_width(ui.available_width()));
-      if wants_kbinput && cmd_te.has_focus() && ui.input().key_pressed(egui::Key::Enter) {
-        dbg_state.invoke();
+  layer_0.fill(
+      UVec2::new(0, 0),
+      UVec2::new(32, 32),
+      Tile {
+          texture_index: 0,
+          ..Default::default()
       }
-      else if toggle_console && dbg_state.console_open {
-        cmd_te.request_focus();
+      .into(),
+  );
+  layer_0.fill(
+      UVec2::new(32, 0),
+      UVec2::new(64, 32),
+      Tile {
+          texture_index: 1,
+          ..Default::default()
       }
-      ui.separator();
-      egui::ScrollArea::auto_sized().show(ui, |ui| {
-        ui.spacing_mut().item_spacing = egui::Vec2::splat(2.0);
+      .into(),
+  );
+  layer_0.fill(
+      UVec2::new(0, 32),
+      UVec2::new(32, 64),
+      Tile {
+          texture_index: 2,
+          ..Default::default()
+      }
+      .into(),
+  );
+  layer_0.fill(
+      UVec2::new(32, 32),
+      UVec2::new(64, 64),
+      Tile {
+          texture_index: 3,
+          ..Default::default()
+      }
+      .into(),
+  );
 
-        for entry in &dbg_state.output {
-          ui.label(entry);
-        }
-      });
-    });
+  map_query.build_layer(&mut commands, layer_0, material_handle.clone());
+
+  // Make 2 layers on "top" of the base map.
+  for z in 0..5 {
+      let mut new_settings = map_settings.clone();
+      new_settings.layer_id = z + 1;
+      let (mut layer_builder, layer_entity) = LayerBuilder::new(
+          &mut commands,
+          new_settings.clone(),
+          0u16,
+          new_settings.layer_id,
+      );
+      map.add_layer(&mut commands, new_settings.layer_id, layer_entity);
+
+      let mut random = thread_rng();
+
+      for _ in 0..1000 {
+          let position = UVec2::new(random.gen_range(0..128), random.gen_range(0..128));
+          // Ignore errors for demo sake.
+          let _ = layer_builder.set_tile(
+              position,
+              TileBundle {
+                  tile: Tile {
+                      texture_index: 0 + z + 1,
+                      ..Default::default()
+                  },
+                  ..Default::default()
+              },
+          );
+      }
+
+      map_query.build_layer(&mut commands, layer_builder, material_handle.clone());
   }
+
+  // Spawn Map
+  // Required in order to use map_query to retrieve layers/tiles.
+  commands
+      .entity(map_entity)
+      .insert(map)
+      .insert(Transform::from_xyz(0.0, 1024.0, 0.0))
+      .insert(GlobalTransform::default());
 }
