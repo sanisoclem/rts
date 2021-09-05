@@ -24,7 +24,6 @@ enum NoiseType {
   Blended,
 }
 
-
 struct Terrain {
   loaded: bool,
   noise_type: NoiseType,
@@ -33,7 +32,7 @@ struct Terrain {
   perlin: Perlin,
   fbm: Fbm,
   ridged: RidgedMulti,
-  worley: Worley
+  worley: Worley,
 }
 impl Default for Terrain {
   fn default() -> Self {
@@ -45,7 +44,7 @@ impl Default for Terrain {
       perlin: Perlin::default(),
       fbm: Fbm::default(),
       ridged: RidgedMulti::default(),
-      worley: Worley::default()
+      worley: Worley::default(),
     }
   }
 }
@@ -88,7 +87,9 @@ fn load_terrain(mut commands: Commands, mut terrain: ResMut<Terrain>, mut map_qu
       // ignore error?
       let position = UVec2::new(x.into(), y.into());
       let mut color = terrain.get([x.into(), y.into()]) as u16;
-      if color > 3 { color = 3u16 }
+      if color > 3 {
+        color = 3u16
+      }
 
       let _ = map_query.set_tile(
         &mut commands,
@@ -116,33 +117,84 @@ fn terrain_gui(egui_context: ResMut<EguiContext>, mut terrain_state: ResMut<Terr
       .show(ui, |ui| {
         ui.label("Noise Type");
         egui::ComboBox::from_label("Noise Type")
-            .selected_text(format!("{:?}", terrain_state.noise_type))
-            .show_ui(ui, |ui| {
-                terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Blended, "Blended").changed();
-                terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Perlin, "Perlin").changed();
-                terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Ridged, "Ridged").changed();
-                terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Fbm, "Fbm").changed();
-                terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Worley, "Worley").changed();
-            });
+          .selected_text(format!("{:?}", terrain_state.noise_type))
+          .show_ui(ui, |ui| {
+            terrain_state.loaded = terrain_state.loaded
+              && !ui
+                .selectable_value(&mut terrain_state.noise_type, NoiseType::Blended, "Blended")
+                .changed();
+            terrain_state.loaded = terrain_state.loaded
+              && !ui
+                .selectable_value(&mut terrain_state.noise_type, NoiseType::Perlin, "Perlin")
+                .changed();
+            terrain_state.loaded = terrain_state.loaded
+              && !ui
+                .selectable_value(&mut terrain_state.noise_type, NoiseType::Ridged, "Ridged")
+                .changed();
+            terrain_state.loaded = terrain_state.loaded
+              && !ui
+                .selectable_value(&mut terrain_state.noise_type, NoiseType::Fbm, "Fbm")
+                .changed();
+            terrain_state.loaded = terrain_state.loaded
+              && !ui
+                .selectable_value(&mut terrain_state.noise_type, NoiseType::Worley, "Worley")
+                .changed();
+          });
         ui.end_row();
         ui.label("Value scale");
-        terrain_state.loaded = terrain_state.loaded && !ui.add(egui::Slider::new(&mut terrain_state.scale_bias[0], 0.0..=10.0)).changed();
+        terrain_state.loaded = terrain_state.loaded
+          && !ui
+            .add(egui::Slider::new(
+              &mut terrain_state.scale_bias[0],
+              0.0..=10.0,
+            ))
+            .changed();
         ui.end_row();
         ui.label("Value bias");
-        terrain_state.loaded = terrain_state.loaded && !ui.add(egui::Slider::new(&mut terrain_state.scale_bias[1], 0.0..=10.0)).changed();
+        terrain_state.loaded = terrain_state.loaded
+          && !ui
+            .add(egui::Slider::new(
+              &mut terrain_state.scale_bias[1],
+              0.0..=10.0,
+            ))
+            .changed();
         ui.end_row();
 
         ui.label("Scale X");
-        terrain_state.loaded = terrain_state.loaded && !ui.add(egui::Slider::new(&mut terrain_state.scale_point[0], 0.0..=0.1)).changed();
+        terrain_state.loaded = terrain_state.loaded
+          && !ui
+            .add(egui::Slider::new(
+              &mut terrain_state.scale_point[0],
+              0.0..=0.1,
+            ))
+            .changed();
         ui.end_row();
         ui.label("Scale Y");
-        terrain_state.loaded = terrain_state.loaded && !ui.add(egui::Slider::new(&mut terrain_state.scale_point[1], 0.0..=0.10)).changed();
+        terrain_state.loaded = terrain_state.loaded
+          && !ui
+            .add(egui::Slider::new(
+              &mut terrain_state.scale_point[1],
+              0.0..=0.10,
+            ))
+            .changed();
         ui.end_row();
         ui.label("Scale Z");
-        terrain_state.loaded = terrain_state.loaded && !ui.add(egui::Slider::new(&mut terrain_state.scale_point[2], 0.0..=0.10)).changed();
+        terrain_state.loaded = terrain_state.loaded
+          && !ui
+            .add(egui::Slider::new(
+              &mut terrain_state.scale_point[2],
+              0.0..=0.10,
+            ))
+            .changed();
         ui.end_row();
         ui.label("Scale W");
-        terrain_state.loaded = terrain_state.loaded && !ui.add(egui::Slider::new(&mut terrain_state.scale_point[3], 0.0..=0.10)).changed();
+        terrain_state.loaded = terrain_state.loaded
+          && !ui
+            .add(egui::Slider::new(
+              &mut terrain_state.scale_point[3],
+              0.0..=0.10,
+            ))
+            .changed();
         ui.end_row();
 
         ui.label("Terrain");

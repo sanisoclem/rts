@@ -1,6 +1,7 @@
 mod debug;
 mod helpers;
 mod terrain;
+mod tilemap;
 
 use bevy::{input::system::exit_on_esc_system, prelude::*};
 use bevy_ecs_tilemap::TilemapPlugin;
