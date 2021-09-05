@@ -20,6 +20,7 @@ enum NoiseType {
   Perlin,
   Ridged,
   Fbm,
+  Worley,
   Blended,
 }
 
@@ -32,17 +33,19 @@ struct Terrain {
   perlin: Perlin,
   fbm: Fbm,
   ridged: RidgedMulti,
+  worley: Worley
 }
 impl Default for Terrain {
   fn default() -> Self {
     Terrain {
       loaded: false,
       noise_type: NoiseType::Blended,
-      scale_bias: [6.0, 3.0],
-      scale_point: [0.01, 0.01, 1.0, 1.0],
+      scale_bias: [5.0, 2.5],
+      scale_point: [0.04, 0.04, 1.0, 1.0],
       perlin: Perlin::default(),
       fbm: Fbm::default(),
       ridged: RidgedMulti::default(),
+      worley: Worley::default()
     }
   }
 }
@@ -66,8 +69,9 @@ impl Terrain {
       NoiseType::Perlin => self.get_scaled(&self.perlin, coords),
       NoiseType::Ridged => self.get_scaled(&self.ridged, coords),
       NoiseType::Fbm => self.get_scaled(&self.fbm, coords),
+      NoiseType::Worley => self.get_scaled(&self.worley, coords),
       NoiseType::Blended => {
-        let blend = Blend::new(&self.perlin, &self.ridged, &self.fbm);
+        let blend = Blend::new(&self.fbm, &self.ridged, &self.perlin);
         return self.get_scaled(&blend, coords);
       }
     }
@@ -84,7 +88,7 @@ fn load_terrain(mut commands: Commands, mut terrain: ResMut<Terrain>, mut map_qu
       // ignore error?
       let position = UVec2::new(x.into(), y.into());
       let mut color = terrain.get([x.into(), y.into()]) as u16;
-      if color > 6 { color = 6u16 }
+      if color > 3 { color = 3u16 }
 
       let _ = map_query.set_tile(
         &mut commands,
@@ -118,6 +122,7 @@ fn terrain_gui(egui_context: ResMut<EguiContext>, mut terrain_state: ResMut<Terr
                 terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Perlin, "Perlin").changed();
                 terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Ridged, "Ridged").changed();
                 terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Fbm, "Fbm").changed();
+                terrain_state.loaded = terrain_state.loaded && !ui.selectable_value(&mut terrain_state.noise_type, NoiseType::Worley, "Worley").changed();
             });
         ui.end_row();
         ui.label("Value scale");
@@ -155,7 +160,7 @@ fn startup(
 ) {
   commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
-  let texture_handle = asset_server.load("iso_color.png");
+  let texture_handle = asset_server.load("tiles4.png");
   let material_handle = materials.add(ColorMaterial::texture(texture_handle));
 
   // Create map entity and component:
@@ -165,8 +170,8 @@ fn startup(
   let mut map_settings = LayerSettings::new(
     UVec2::new(4, 4),
     UVec2::new(32, 32),
-    Vec2::new(64.0, 32.0),
-    Vec2::new(384.0, 32.0),
+    Vec2::new(100.0, 50.0),
+    Vec2::new(400.0, 66.0),
   );
   map_settings.mesh_type = TilemapMeshType::Isometric(IsoType::Diamond);
 
