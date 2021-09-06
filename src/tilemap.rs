@@ -95,9 +95,9 @@ pub struct ChunkSiteComponent<TChunkCoords> {
 }
 
 pub trait Layout: Sync + Send {
-  type TSpaceCoords: Sync + Send ;
-  type TChunkCoords: Sync + Send ;
-  type TTileCoords: Sync + Send ;
+  type TSpaceCoords: Sync + Send;
+  type TChunkCoords: Sync + Send;
+  type TTileCoords: Sync + Send;
 
   fn tile_to_chunk(&self, tile: &Self::TTileCoords) -> Self::TChunkCoords;
   fn tile_to_space(&self, tile: &Self::TTileCoords) -> Self::TSpaceCoords;
@@ -111,7 +111,7 @@ pub trait Layout: Sync + Send {
     chunk: &Self::TChunkCoords,
     distance: u32,
   ) -> Vec<Self::TChunkCoords>;
-  fn get_chunk_distance(&self, a: &Self::TChunkCoords, b: &Self::TChunkCoords) -> u32;
+  fn get_chunk_distance(&self, a: &Self::TChunkCoords, b: &Self::TChunkCoords) -> f32;
 }
 
 #[derive(Default)]
