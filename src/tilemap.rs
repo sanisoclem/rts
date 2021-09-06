@@ -18,7 +18,7 @@ where
   TTile: 'static + Send + Sync,
   TLayer: 'static + Default + Send + Sync,
   TLayout: 'static + Layout<TSpaceCoords = Vec3>,
-  <TLayout as Layout>::TChunkCoords: Default + Clone,
+  <TLayout as Layout>::TChunkCoords: Default + Copy,
 {
   fn build(&self, app: &mut AppBuilder) {
     app
@@ -36,7 +36,7 @@ where
   TTile: 'static + Send + Sync,
   TLayer: 'static + Default + Send + Sync,
   TLayout: 'static + Layout<TSpaceCoords = Vec3>,
-  <TLayout as Layout>::TChunkCoords: Default + Clone,
+  <TLayout as Layout>::TChunkCoords: Default + Copy,
 {
   fn chunk_spawner(
     mut commands: Commands,
@@ -99,7 +99,6 @@ pub trait Layout: Sync + Send {
   type TChunkCoords: Sync + Send ;
   type TTileCoords: Sync + Send ;
 
-  fn chunk_to_space(&self, chunk: &Self::TChunkCoords) -> Self::TSpaceCoords;
   fn tile_to_chunk(&self, tile: &Self::TTileCoords) -> Self::TChunkCoords;
   fn tile_to_space(&self, tile: &Self::TTileCoords) -> Self::TSpaceCoords;
   fn space_to_tile(&self, space: &Self::TSpaceCoords) -> Self::TTileCoords;
